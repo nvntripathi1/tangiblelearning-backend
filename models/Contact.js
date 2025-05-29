@@ -36,6 +36,16 @@ const contactSchema = new mongoose.Schema({
     trim: true,
     maxlength: [100, 'Company name cannot exceed 100 characters']
   },
+  location: {
+  type: String,
+  trim: true,
+  maxlength: [100, 'Location cannot exceed 100 characters']
+  },
+  school: {
+    type: String,
+    trim: true,
+    maxlength: [150, 'School name cannot exceed 150 characters']
+  },
   status: {
     type: String,
     enum: ['new', 'read', 'replied', 'resolved'],

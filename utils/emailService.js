@@ -2,7 +2,7 @@ const nodemailer = require('nodemailer');
 
 // Create email transporter (the thing that sends emails)
 const createTransporter = () => {
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: process.env.SMTP_PORT || 587,
     secure: false, // true for 465, false for other ports

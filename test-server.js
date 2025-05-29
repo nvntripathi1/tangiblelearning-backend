@@ -3,6 +3,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
+// Import email service
+const { sendNotificationEmail } = require('./utils/emailService');
+
 // Import models
 const Contact = require('./models/Contact');
 const Admin = require('./models/Admin');
@@ -12,6 +15,10 @@ const PORT = process.env.PORT || 5000;
 
 // Basic middleware
 app.use(cors());
+
+// Trust proxy for IP address handling
+app.set('trust proxy', true);
+
 app.use(express.json());
 
 // Connect to MongoDB
@@ -41,7 +48,7 @@ app.get('/health', (req, res) => {
 // Contact form submission
 app.post('/api/contact', async (req, res) => {
   try {
-    const { name, email, phone, subject, message, company } = req.body;
+    const { name, email, phone, subject, message, company, location, school} = req.body;
 
     if (!name || !email || !message) {
       return res.status(400).json({
@@ -50,6 +57,10 @@ app.post('/api/contact', async (req, res) => {
       });
     }
 
+    // Get client information
+    const ipAddress = req.ip || req.socket.remoteAddress || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.get('User-Agent') || 'unknown';
+
     const contact = new Contact({
       name,
       email,
@@ -57,10 +68,27 @@ app.post('/api/contact', async (req, res) => {
       subject,
       message,
       company,
+      location,
+      school,
+      ipAddress,
+      userAgent,
       source: 'website'
     });
 
     await contact.save();
+
+    // Debug email configuration
+      console.log('📧 Attempting to send email notification...');
+      console.log('SMTP_USER:', process.env.SMTP_USER ? 'Set' : 'Not set');
+      console.log('SMTP_PASS:', process.env.SMTP_PASS ? 'Set' : 'Not set');
+      console.log('ADMIN_EMAIL:', process.env.ADMIN_EMAIL ? 'Set' : 'Not set');
+
+      // Send notification email (don't wait for it to complete)
+      sendNotificationEmail(contact).then(() => {
+        console.log('✅ Email notification sent successfully');
+      }).catch(error => {
+        console.error('❌ Failed to send email notification:', error.message);
+        });
 
     res.status(201).json({
       success: true,
