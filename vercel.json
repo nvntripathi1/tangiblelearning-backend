@@ -27,12 +27,11 @@
         {
           "key": "X-Frame-Options",
           "value": "DENY"
-        },
+        }
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
         }
-      ]
     },
     {
       "source": "/static/(.*)",
@@ -45,7 +44,7 @@
     }
   ],
   "env": {
-    "REACT_APP_API_URL": "https://your-backend-api.com",
+    "REACT_APP_API_URL": "https://tangiblelearning-backend-production.up.railway.app",
     "NODE_ENV": "production"
   },
   "cleanUrls": true,
