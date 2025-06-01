@@ -14,7 +14,15 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Basic middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5000',
+    'https://tangiblelearning.vercel.app',
+    'https://www.tangiblelearning.vercel.app'
+  ],
+  credentials: true
+}));
 
 // Trust proxy for IP address handling
 app.set('trust proxy', true);
@@ -182,18 +190,18 @@ app.get('/api/contacts', async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('🚀 Tangible Learning Backend Started!');
   console.log('=====================================');
   console.log(`📡 Server running on port ${PORT}`);
-  console.log(`🌐 URL: http://localhost:${PORT}`);
+  console.log('🌐 Railway will provide the public URL');
   console.log('');
-  console.log('📋 Test these endpoints:');
-  console.log(`   GET  http://localhost:${PORT}/health`);
-  console.log(`   POST http://localhost:${PORT}/api/contact`);
-  console.log(`   POST http://localhost:${PORT}/api/auth/login`);
-  console.log(`   GET  http://localhost:${PORT}/api/contacts`);
+  console.log('📋 Available endpoints:');
+  console.log('   GET  /health');
+  console.log('   POST /api/contact');
+  console.log('   POST /api/auth/login');
+  console.log('   GET  /api/contacts');
   console.log('');
 });
 
