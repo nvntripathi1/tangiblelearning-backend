@@ -19,7 +19,9 @@ app.use(cors({
     'http://localhost:3000',
     'http://localhost:5000',
     'https://tangiblelearning.vercel.app',
-    'https://www.tangiblelearning.vercel.app'
+    'https://www.tangiblelearning.vercel.app',
+    'https://tangiblelearning.in',
+    'https://www.tangiblelearning.in'
   ],
   credentials: true
 }));
