@@ -225,6 +225,138 @@ app.post('/api/admin/create', async (req, res) => {
   }
 });
 
+
+// Change admin password (NEW - add this)
+app.post('/api/admin/change-password', async (req, res) => {
+  try {
+    const { currentPassword, newPassword, username } = req.body;
+
+    if (!currentPassword || !newPassword || !username) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password, new password, and username are required'
+      });
+    }
+
+    // Find admin
+    const admin = await Admin.findOne({ username }).select('+password');
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found'
+      });
+    }
+
+    // Verify current password
+    const isValidPassword = await admin.comparePassword(currentPassword);
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Update password
+    admin.password = newPassword;
+    await admin.save();
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to change password'
+    });
+  }
+});
+
+// Create new admin user (NEW - add this)
+app.post('/api/admin/create-user', async (req, res) => {
+  try {
+    const { username, email, password, fullName, role } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username, email, and password are required'
+      });
+    }
+
+    // Check if admin already exists
+    const existingAdmin = await Admin.findOne({ 
+      $or: [{ username }, { email }] 
+    });
+    
+    if (existingAdmin) {
+      return res.status(400).json({
+        success: false,
+        message: 'Admin with this username or email already exists'
+      });
+    }
+
+    const admin = new Admin({
+      username,
+      email,
+      password,
+      fullName,
+      role: role || 'admin'
+    });
+
+    await admin.save();
+    
+    res.json({
+      success: true,
+      message: 'Admin user created successfully',
+      admin: {
+        username: admin.username,
+        email: admin.email,
+        role: admin.role
+      }
+    });
+
+  } catch (error) {
+    console.error('Create admin error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create admin user'
+    });
+  }
+});
+
+// Quick password reset (NEW - add this)
+app.get('/api/admin/reset-password/:username/:newPassword', async (req, res) => {
+  try {
+    const { username, newPassword } = req.params;
+    
+    const admin = await Admin.findOne({ username });
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found'
+      });
+    }
+
+    admin.password = newPassword;
+    await admin.save();
+
+    res.json({
+      success: true,
+      message: `Password updated for ${username}`
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset password'
+    });
+  }
+});
+
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log('');
