@@ -19,7 +19,7 @@ app.use(cors({
     'http://localhost:3000',
     'http://localhost:5000',
     'https://tangiblelearning.vercel.app',
-    'https://www.tangiblelearning.vercel.app'
+    'https://www.tangiblelearning.vercel.app',
     'https://tangiblelearning.in',
     'https://www.tangiblelearning.in'
   ],
@@ -187,6 +187,40 @@ app.get('/api/contacts', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch contacts'
+    });
+  }
+});
+
+// Create initial admin user (add this endpoint)
+app.post('/api/admin/create', async (req, res) => {
+  try {
+    // Check if admin already exists
+    const existingAdmin = await Admin.findOne({ username: 'superadmin' });
+    if (existingAdmin) {
+      return res.json({ success: true, message: 'Admin already exists' });
+    }
+
+    const admin = new Admin({
+      username: 'superadmin',
+      email: 'naveenp@tangiblelearning.in',
+      password: 'admin123456',
+      fullName: 'Naveen Tripathi',
+      role: 'super_admin'
+    });
+
+    await admin.save();
+    
+    res.json({
+      success: true,
+      message: 'Admin user created successfully'
+    });
+
+  } catch (error) {
+    console.error('Create admin error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create admin user',
+      error: error.message
     });
   }
 });
