@@ -356,6 +356,197 @@ app.get('/api/admin/reset-password/:username/:newPassword', async (req, res) => 
   }
 });
 
+// Delete contact
+app.delete('/api/admin/contacts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedContact = await Contact.findByIdAndDelete(id);
+
+    if (!deletedContact) {
+      return res.status(404).json({
+        success: false,
+        message: 'Contact not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Contact deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete contact error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete contact'
+    });
+  }
+});
+
+// Update contact status
+app.patch('/api/admin/contacts/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['new', 'read', 'replied', 'resolved'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status. Must be: new, read, replied, or resolved'
+      });
+    }
+
+    const contact = await Contact.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!contact) {
+      return res.status(404).json({
+        success: false,
+        message: 'Contact not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Contact status updated successfully',
+      data: contact
+    });
+
+  } catch (error) {
+    console.error('Update contact status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update contact status'
+    });
+  }
+});
+
+// Send reply email
+app.post('/api/admin/contacts/:id/reply', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subject, message, fromEmail } = req.body;
+
+    if (!subject || !message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Subject and message are required'
+      });
+    }
+
+    // Find the contact
+    const contact = await Contact.findById(id);
+    if (!contact) {
+      return res.status(404).json({
+        success: false,
+        message: 'Contact not found'
+      });
+    }
+
+    // Import email service
+    const { sendReplyEmail } = require('./utils/emailService');
+
+    // Send reply email
+    await sendReplyEmail(contact, subject, message, fromEmail || process.env.ADMIN_EMAIL);
+
+    // Update contact status to replied
+    contact.status = 'replied';
+    await contact.save();
+
+    res.json({
+      success: true,
+      message: 'Reply sent successfully'
+    });
+
+  } catch (error) {
+    console.error('Send reply error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send reply: ' + error.message
+    });
+  }
+});
+
+// Get contact statistics
+app.get('/api/admin/stats', async (req, res) => {
+  try {
+    const totalContacts = await Contact.countDocuments();
+    const newContacts = await Contact.countDocuments({ status: 'new' });
+    const repliedContacts = await Contact.countDocuments({ status: 'replied' });
+    
+    // Today's contacts
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    
+    const todayContacts = await Contact.countDocuments({
+      createdAt: { $gte: today, $lt: tomorrow }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        total: totalContacts,
+        new: newContacts,
+        replied: repliedContacts,
+        today: todayContacts
+      }
+    });
+
+  } catch (error) {
+    console.error('Get stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch statistics'
+    });
+  }
+});
+
+// Get all contacts with enhanced filtering
+app.get('/api/admin/contacts', async (req, res) => {
+  try {
+    const { status, limit = 50, page = 1 } = req.query;
+    
+    // Build filter
+    const filter = {};
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const contacts = await Contact.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Contact.countDocuments(filter);
+
+    res.json({
+      success: true,
+      data: contacts,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / parseInt(limit)),
+        limit: parseInt(limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Get contacts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch contacts'
+    });
+  }
+});
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
